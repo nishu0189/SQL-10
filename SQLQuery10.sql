@@ -232,20 +232,16 @@ FROM emp;
 of a tie).In case a department has less than 3 employees then print the details of highest salaried employee in that department. */
 
 SELECT * from emp
+-------------------
 
-with cte1 as
-(
-select * ,
-row_number() over (partition by dept_id order by salary asc , name desc ) as row_no,
-count(*) over (partition by dept_id) as total_emp
-from emp
-)
+with cte1 as (
+select dept_id,name , ROW_NUMBER() over (partition by dept_id order by salary desc , age asc)  as rn,
+count(*) over (partition by dept_id) as total_emp 
+from emp)
 
-select dept_id ,name 
-from cte1
- where (row_no = 3 AND total_emp >=  3 )
-OR (row_no= 1 AND	total_emp < 3)
-
+select dept_id, name from cte1 where( rn=3 and total_emp >=3) OR (rn = 1 and total_emp<3)
+		
+		
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --Q2:- write a query to find top 2 and bottom 2 products by sales in each category.
 
@@ -287,7 +283,25 @@ ORDER BY category, rank_type, sales DESC;
 
  -- Q3:- Among all the sub categories .. which sub category had highest month over month growth by sales in Jan 2020.
 
-	select * from 
+--select * from orders
+
+WITH monthly_sales AS (
+SELECT category,FORMAT(or_date, 'yyyy-MM') AS year_month, SUM(sales) AS total_sales
+FROM orders
+GROUP BY category, FORMAT(or_date, 'yyyy-MM')),
+
+sales_with_lag AS (
+SELECT category, year_month, total_sales,LAG(total_sales) OVER (PARTITION BY category ORDER BY year_month) AS prev_month_sales
+FROM monthly_sales),
+
+oct_2024_growth AS (
+SELECT category,total_sales,prev_month_sales,(total_sales - prev_month_sales) * 1.0 / NULLIF(prev_month_sales, 0) AS growth
+FROM sales_with_lag
+WHERE year_month = '2024-10')
+SELECT TOP 1 category,growth
+FROM oct_2024_growth
+ORDER BY growth DESC;
+		
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --Q4:-
 --------------------------------------------------TABLE PROD --------------------------------------------------------------
